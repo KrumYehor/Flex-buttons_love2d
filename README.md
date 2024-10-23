@@ -78,5 +78,6 @@ end
 
 ```
 
+## Full documentation is available on the GitHub Wiki
 
 _Built with love (and a bit of madness) for Love2D 11.5_
