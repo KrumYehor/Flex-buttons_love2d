@@ -89,7 +89,7 @@ end
 
 ```
 
-## Full documentation is available on the GitHub Wiki
+## Documentation is available on the GitHub Wiki
 [Repo link](https://github.com/KrumYehor/Flex-buttons_love2d)
 
 
