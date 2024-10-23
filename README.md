@@ -32,6 +32,17 @@ The following callback functions are available for customizing button behavior:
 
 ---
 
+
+### Installation
+1. Clone the repository:
+   git clone https://github.com/KrumYehor/Flex-buttons_love2d
+
+2. The folder structure should look like:
+   yourGameFolder/libs/buttons/buttons.lua
+
+3. Copy an example main.lua from libs/demo into your project to get started.
+
+
 #### Hello world
 ```lua
 local buttons = require("libs.buttons.buttons") -- Load the buttons library into the 'buttons' table
