@@ -79,5 +79,7 @@ end
 ```
 
 ## Full documentation is available on the GitHub Wiki
+[Repo link](https://github.com/KrumYehor/Flex-buttons_love2d)
+
 
 _Built with love (and a bit of madness) for Love2D 11.5_
