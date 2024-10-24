@@ -1,15 +1,45 @@
-local  buttons = {}
+-- buttons Library Overview
 
+-- This library provides functionality for managing interactive buttons.  
+-- It supports three shapes: rectangles, circles, and polygons, and includes methods for handling 
+-- events such as mouse movements, clicks, and state updates. Additionally, it allows for 
+-- translating all layers and scaling, providing flexible positioning and sizing of buttons.
 
+-- Features:
+-- - **Layer System**: The library implements a layer system where buttons are organized by layers. 
+--   Buttons in lower layers (with lower layer IDs) have higher priority, meaning they will respond to events  
+--   before buttons in higher layers.
+-- - **Hover State Management**: Only one button can have a hover state or hover border state active at any given time, 
+--   ensuring clear visual feedback without ambiguity.
+-- - **Overlapping Buttons**: The library handles overlapping buttons efficiently. When buttons overlap, 
+--   the topmost button (based on the layer system) will receive input events, while lower buttons remain unaffected, 
+--   preventing errors or unintended behavior.  
+
+-- Callback Functions:
+-- - **BorderHover(xm, ym, dx, dy)**: Called every frame when the mouse is over the button border.
+-- - **BorderUnHover(xm, ym, dx, dy)**: Called once when the mouse leaves the button border.
+-- - **WhileBorderHover(self, xm, ym, dx, dy)**: Called every frame while the cursor is hovering over the button border.
+-- - **WhileBorderPressed(self, xm, ym, dx, dy)**: Called every frame while the button border is pressed, even if the mouse leaves the button.
+-- - **Hover(self, xm, ym, dx, dy)**: Called once when the mouse enters the button area.
+-- - **WhileHover(self, xm, ym, dx, dy)**: Called every frame while the mouse is over the button.
+-- - **WhilePressed(xm, ym, dx, dy)**: Called every frame when the button is pressed, even if the mouse leaves the button.
+-- - **UnHover(self, xm, ym, dx, dy)**: Called once when the mouse leaves the button area.
+-- - **BorderClick(self, xm, ym, button)**: Called once when the mouse clicks on the button border.
+-- - **Click(self, xm, ym, button)**: Called once when the mouse clicks inside the button.
+-- - **Release(self, xm, ym, button)**: Called once when the mouse releases a button inside the button's area.
+-- - **BorderRelease(self, xm, ym, button)**: Called once when the mouse releases a button on the button's border.
+-- - **WhileMoves(self, xm, ym, dx, dy, istouch)**: Called every time the mouse moves.
+-- - **Scroll(dxm, dym)**: Called every time the user scrolls, capturing the scroll direction and amount.
 
 ------------------------------------------
 --Built with love (and a bit of madness) for Love2D 11.5 
 ----------------------------------------------
 
+local  buttons = {}
+
 ---------------------
 -- Configuration
 ---------------------
-
 -- Width where hover/click border detection works methods  :getBorderCheckWidht() :setBorderCheckWidht(num)
 buttons.borderCheckWidth = 5
 
@@ -21,7 +51,6 @@ buttons.updateBorderHover = true
 buttons.max_quantity_buttons_in_layer = 4000 -- Based on testing, more than 8000 rectangles drops FPS below 60 methods:setMaxQuantityButtonsInLayer(x) :getMaxQuantityButtonsInLayer(x)
 -- Maximum number of layers methods:getMaxQuantityLayers(num) :setMaxQuantityLayers(num)
 buttons.max_quantity_layers = 400   
-
 ---------------------
 -- END Configuration
 ---------------------
@@ -50,7 +79,7 @@ buttons.current_layer = 1 -- Sets the current active layer for adding new button
 
 buttons.mousePosition = {} -- Stores the mouse delta between updates
 
-local rclr = {} -- Contains random colors for buttons in debug mode
+buttons.rclr = {} -- Contains random colors for buttons in debug mode
 
 buttons.hover_lock = false -- Prevents hover functionality
 buttons.Prev_hover  = false -- Stores the previous or currently hovered button (either on the body or border)
@@ -100,24 +129,23 @@ end
 function buttons:draw()
 
     -- Main cucle for drawing and printing
-    if self.debug then
+    if self.debug   then
         self:mainUpdateCycleReversed( function (self,layer,key,btn)
             local x, y = self:Scale(math.floor(btn.x * 10^1) / 10^1, math.floor(btn.y * 10^1) / 10^1) -- Translate the button's coordinates with scaling and rounding
             x,y = self:Translate(x,y)
             if btn.id == nil then goto skip end -- Skip if the button has no ID
 
             -- Initialize random colors for the button if not already set
-            if not rclr[key] then rclr[key] = {} end
-            if not rclr[key][1] then rclr[key][1] = math.random(3, 8) / 10 end -- Red color component
-            if not rclr[key][2] then rclr[key][2] = math.random(3, 8) / 10 end -- Green color component
-            if not rclr[key][3] then rclr[key][3] = math.random(3, 8) / 10 end -- Blue color component
-
+            if not self.rclr[key] then self.rclr[key] = {} end
+            if not self.rclr[key][1] then self.rclr[key][1] = math.random(3, 8) / 10 end -- Red color component
+            if not self.rclr[key][2] then self.rclr[key][2] = math.random(3, 8) / 10 end -- Green color component
+            if not self.rclr[key][3] then self.rclr[key][3] = math.random(3, 8) / 10 end -- Blue color component
             -- Set the button color: if disabled, apply gray with transparency
             if btn.Disabled then
                 love.graphics.setColor(0.4, 0.4, 0.4, 0.5)
             else
                 -- Set the random color for the button
-                love.graphics.setColor(rclr[key][1], rclr[key][2], rclr[key][3], 1)
+                love.graphics.setColor(self.rclr[key][1], self.rclr[key][2],    self.rclr[key][3], 1)
             end
 
             -- If the button is hovered, change its color to light gray
@@ -126,11 +154,11 @@ function buttons:draw()
             end
 
             -- Change color based on which mouse button is pressed
-            if btn.IsDown[1] == 1 then
+            if btn.IsDown[1] then
                 love.graphics.setColor(1, 0, 0, 0.2) -- Left mouse button pressed, set red color
-            elseif btn.IsDown[2] == 1 then
+            elseif btn.IsDown[2] then
                 love.graphics.setColor(0, 1, 0, 0.2) -- Right mouse button pressed, set green color
-            elseif btn.IsDown[3] == 1 then
+            elseif btn.IsDown[3] then
                 love.graphics.setColor(0, 0, 1, 0.2) -- Middle mouse button pressed, set blue color
             end
 
@@ -208,8 +236,8 @@ function buttons:draw()
                 love.graphics.polygon("fill", vertex_temp) -- Draw the filled polygon using the scaled vertices
             
                 -- Draw BorderHover if enabled in debug mode
-                if (self.debugBorderHover  and self.updateBorderHover   ) then
-                    if ( btn:hasBorderCallback() and   btn.IsBorderHover) then
+                if ( btn:hasBorderCallback() and self.debugBorderHover  and self.updateBorderHover   ) then
+                    if (   btn.IsBorderHover) then
                         love.graphics.setColor(1, 0, 0) -- Set color to red if hovering
                     else
                         love.graphics.setColor(1, 0, 0, 0.5) -- Set semi-transparent red if not hovering
@@ -236,7 +264,6 @@ function buttons:draw()
             
                     local tring = love.math.triangulate(vertex_temp) -- Triangulate the polygon for debugging
             
-                    love.graphics.setLineWidth(1) -- Reset line width for the triangulated lines
                     love.graphics.setColor(1, 0, 1, 0.5) -- Set color for triangulated lines
                     for k, v in pairs(tring) do
                         love.graphics.polygon("line", v) -- Draw each triangle from the triangulation
@@ -275,10 +302,10 @@ function buttons:draw()
                 end
             
                 -- Draw BorderHover if enabled in debug mode
-                if (self.debugBorderHover and self.updateBorderHover   ) then
-                    if ( btn:hasBorderCallback() and   btn.IsBorderHover) then
+                if (btn:hasBorderCallback() and self.debugBorderHover and self.updateBorderHover   ) then
+                    if (    btn.IsBorderHover) then
                         love.graphics.setColor(1, 0, 0) -- Set color to red if hovering over the border
-                    elseif ( btn:hasBorderCallback() and  not btn.IsBorderHover) then
+                    elseif (  not btn.IsBorderHover) then
                         love.graphics.setColor(0.5, 0, 0, 0.5) -- Set semi-transparent red if not hovering
                     end
                     
@@ -311,13 +338,13 @@ function buttons:draw()
             info = info .. " relative postion"
     
             info = info .. " X:" .. math.floor(  btn.x* 10^1) / 10^1 .. " Y:" .. math.floor(  btn.y* 10^1) / 10^1
-            if (btn.IsDown[1] == 1) then
+            if (btn.IsDown[1] ) then
                 info = info .. " ,clck: 1"
             end
-            if (btn.IsDown[2] == 1) then
+            if (btn.IsDown[2]) then
                 info = info .. " ,clck: 2"
             end
-            if (btn.IsDown[3] == 1) then
+            if (btn.IsDown[3] ) then
                 info = info .. ", clck: 3"
             end
             if (btn.IsHover) then
@@ -405,7 +432,7 @@ function buttons:updateMain(dt)
         dy = ym - self.mousePosition.y
         dx = xm - self.mousePosition.x
     end
-    dx,dy = self:TranslateCorrectMouse(dx,dy) --- correct mouse. It will work when buttons has changed translation or/and scale 
+    dx,dy = dx/self.scale,dy/self.scale --- correct mouse. It will work when buttons has changed translation or/and scale 
     self.mousePosition.x = xm
     self.mousePosition.y = ym
 
@@ -422,7 +449,7 @@ function buttons:updateMain(dt)
             if (btn and not btn.Disabled ) then -- Proceed only if the button is not disabled
             
                 -- Check for border hover calls
-                if btn:hasBorderCallback() and self.updateBorderHover and btn:isPointInBorder(xm, ym)  and not ButtonsIsPressed then
+                if btn:hasBorderCallback() and self.updateBorderHover and btn:isPointInBorder(xm, ym) then
   
                     if (not self.hover_lock and not btn.IsBorderHover) then -- If the cursor is on the button and hover border state is false
                         self.Prev_hover = btn -- Save the currently hovered button
@@ -531,20 +558,20 @@ function buttons:updateMain(dt)
                         btn:UnHover(xm, ym, dx, dy)
                     end
                 end
-
-                ::skip_hover_check:: 
-                -- Check if the button is still existing
-                if ((self.layers[layer][key]) and (btn.IsDown[1] == 1 or btn.IsDown[2] == 1 or btn.IsDown[3] == 1) and
-                    btn.WhilePressed) then
-                    btn:WhilePressed(xm, ym, dx, dy) -- Call the while pressed function
-                end
-                if((btn.IsBorderDown[1] == 1 or btn.IsBorderDown[2] == 1 or btn.IsBorderDown[3] == 1) ) then
-                    print("sadsd")
-                end
-                if ((self.layers[layer][key]) and (btn.IsBorderDown[1] == 1 or btn.IsBorderDown[2] == 1 or btn.IsBorderDown[3] == 1) and
+                ::skip_hover_check::
+                if ((self.layers[layer][key]) and (btn.IsBorderDown[1] or btn.IsBorderDown[2]or btn.IsBorderDown[3] ) and
                 btn.WhileBorderPressed) then
                     btn:WhileBorderPressed(xm, ym, dx, dy) -- Call the while pressed border function
                 end
+            
+                -- Check if the button is still existing
+                if ((self.layers[layer][key]) and (btn.IsDown[1] or btn.IsDown[2] or btn.IsDown[3] ) and
+                    btn.WhilePressed) then
+                    btn:WhilePressed(xm, ym, dx, dy) -- Call the while pressed function
+                end
+                if((btn.IsBorderDown[1] or btn.IsBorderDown[2] or btn.IsBorderDown[3] ) ) then
+                end
+               
             end
         end
     )
@@ -570,7 +597,7 @@ function buttons:updateMouseScroll( xm, ym)
     for k, layer in pairs(keys) do
         for key, btn in pairs(self.layers[layer]) do
             if (not btn.Disabled) then
-                    if ( btn.Scroll and (btn.IsHover or btn.IsBorderHover)) then
+                    if ( btn.Scroll and btn.IsHover) then
                             btn:Scroll(xm, ym,self) -- callback click function
                             self:hover_lock_check(self.layers[layer][key])
                         return 0
@@ -583,25 +610,29 @@ end
 --- func desc
 ---@param xm  number x mouse
 ---@param ym number y mouse
-function buttons:updateMouseClick( xm, ym, button)
+function buttons:updateMouseClick( xm, ym, button,istouch, presses )
     self:mainUpdateCycle(    function (buttons,layer,key, btn)
         if (not btn.Disabled  ) then
             if btn.IsHover   then
                 if btn.Click then
-                    btn:Click(xm, ym,button) -- callback click function
+                    btn:Click(xm, ym,button,istouch, presses ) -- callback click function
                 end
                 self:hover_lock_check(self.layers[layer][key])
                 if self.layers[layer][key] then -- if button still exist in list set pressed button on 
-                    btn.IsDown[button] = 1
-                    self.IsDownMain[button] = 1
+                    btn.IsDown[button] = true
+                    self.IsDownMain[button] = true
                 end
                 return 0
-            elseif btn.IsBorderHover and btn.ClickBorder     then
-                btn:ClickBorder(xm, ym, button)
+            elseif btn.IsBorderHover and btn:hasBorderCallback()  then
+
+                if  btn.ClickBorder then
+                    btn:ClickBorder(xm, ym, button,istouch, presses )
+
+                end
                 self:hover_lock_check(self.layers[layer][key])
                 if self.layers[layer][key] then -- if button still exist in list set pressed button on 
-                    btn.IsBorderDown[button] = 1
-                    self.IsDownBorderMain[button] = 1
+                    btn.IsBorderDown[button] = true
+                    self.IsDownBorderMain[button] = true
                 end
                 return 0
             end
@@ -627,29 +658,29 @@ end
 
 ---@param xm  number x mouse
 ---@param ym number y mouse
-function buttons:updateMouseRelease( xm, ym, button)
+function buttons:updateMouseRelease( xm, ym, button, istouch, presses )
     self:mainUpdateCycle(    function (buttons,layer,key, btn)
-        if (self.layers[layer][key].IsDown[button] == 1 ) then-- mouse button that pressed on button is released
+        if (self.layers[layer][key].IsDown[button] ) then-- mouse button that pressed on button is released
             if (btn.Release) then
-                btn:Release(xm, ym, button)
-            end
+                btn:Release(xm, ym, button, istouch, presses )
+            end 
             if (self.layers[layer][key] == nil) then
                 self.hover_lock = false
             end
             if (self.layers[layer][key]) then
-                btn.IsDown[button] = 0
+                btn.IsDown[button] = false
                 self.IsDownMain[button] = false
             end
             return 0
-        elseif btn.IsBorderDown[button] == 1   then -- mouse button  that pressed on button border is released
+        elseif btn.IsBorderDown[button]   then -- mouse button  that pressed on button border is released
 
             
             if (btn.ReleaseBorder) then
-                btn:ReleaseBorder(xm, ym, button)
+                btn:ReleaseBorder(xm, ym, button, istouch, presses )
             end
             self:hover_lock_check(self.layers[layer][key])
             if self.layers[layer][key] then -- if button still exist in list set pressed button on 
-                btn.IsBorderDown[button] = 0
+                btn.IsBorderDown[button] = false
                 self.IsDownBorderMain[button] = false
             end
             return 0
@@ -665,10 +696,11 @@ end
 ---@param x number  
 ---@param y number (can be nil)
 function buttons:TranslateScaleMosue(xm,ym) -- for x,y coordinates 
-    local xt = (xm - self.translate.x ) /self.scale 
-    local yt = (ym - self.translate.y ) /self.scale 
+    local xt = (xm - self:getTranslateX() )/ self:getScale()
+    local yt = (ym  - self:getTranslateY() )/ self:getScale()
     return xt,yt
 end
+
 
 
 -- return x,y + translate x,y or x + translate.x
@@ -677,14 +709,9 @@ end
 ---@param x number  
 ---@param y number (can be nil)
 function buttons:Translate(x,y) -- for x,y coordinates 
-    if(y ~= nil) then
-        local xt = (x + self.translate.x ) 
-        local yt = (y + self.translate.y ) 
-        return xt,yt
-    else
-    local xt = x * (x + self.translate.x ) 
-      return xt
-    end
+    local xt = (x + self.translate.x ) 
+    local yt = (y + self.translate.y ) 
+    return xt,yt
 end
 
 -- return x,y * scale  or x * scale
@@ -746,7 +773,7 @@ end
 
 -- set width range where border will calculated
 function buttons:getBorderCheckWidht(width)
-    return  self.max_quantity_layers
+    return  self.borderCheckWidth
 end
 -- set max quantity of layers
 function buttons:setMaxQuantityLayers(x)
@@ -767,19 +794,15 @@ function buttons:setMaxQuantityButtonsInLayer(x)
     else
         error("not number or zero")
     end
-    self.max_quantity_layers = x 
+    self.max_quantity_buttons_in_layer = x 
 end
 
 -- get max quantity of buttons in layer
 function buttons:getMaxQuantityButtonsInLayer(x)
-    return self.max_quantity_layers 
+    return self.max_quantity_buttons_in_layer
 end
 
 
--- get width range where border will calculated
-function buttons:getBorderCheckWidht(width)
-    return self.borderCheckWidth
-end
 
 -- disable all layers
 function buttons:disable()
@@ -791,7 +814,7 @@ end
 -- enable all layers
 function buttons:enable()
     for k, _ in pairs(self.layers) do
-        self:enablelayer(k)
+        self:enableLayer(k)
     end
 end
 
@@ -807,8 +830,8 @@ function buttons:disableLayer( number)
             layer[k].IsHover = false
             layer[k].IsBorderHover = false
 
-            layer[k].IsDown = {0,0,0}
-            layer[k].IsBorderDown= {0,0,0}
+            layer[k].IsDown = {false,false,false}
+            layer[k].IsBorderDown= {false,false,false}
             layer[k]:disable()
         end
     else
@@ -852,7 +875,18 @@ end
 function buttons:delLayer( number)
     if (type(number == "number")) then
         assert( self.layers[number],"Layer: ".. number .. " do not exist or alredy deleted") 
+        
+        print(self.layers[1])
+        print(self.layers[5])
+            local count = 0
+        for k, v in pairs(self.layers) do
+            count = count + 1
+            if count >= 2 then
+                break
+            end
+        end
 
+        if(count == 1) then error("You can`t delete last layer") end
 
         self.layers[number] = nil
 
@@ -881,11 +915,11 @@ function buttons:getCurrentLayerID()
 end
 --Sets Layer for creating also creates layer if it do not exist
 function buttons:setLayer( number)
-    local count = 0
+    local count = 1
     for k, v in pairs(self.layers ) do
             count = count + 1
+    
     end
-
     if( count > self.max_quantity_layers ) then
         error("Too much layers current:" .. count  ..  " max:"..  self.max_quantity_layers)
     end
@@ -903,15 +937,10 @@ function buttons:setLayer( number)
 
 end
 
--- translate and scale
- -- correct mouse mosition to scale and translation
-function buttons:TranslateCorrectMouse(x,y)
-  
-    local xt = x /self.scale
 
-    local yt = y /self.scale
-    return xt,yt
-end
+
+
+
 function buttons:setTranslate( x,y)
     if(type(x) ~= "number") and (type(y) ~= "number")
     then
@@ -963,7 +992,7 @@ end
 function buttons.getBorderHoverState() 
     return buttons.updateBorderHover
 end
-function buttons.setBorderHoverState(x ) 
+function buttons.setBorderHoverState(x) 
     buttons.updateBorderHover = not not  x
 end
 -- Calls function  and gives to it (layer_k,b_key,button_object ) in order by id lyers and id buttons
@@ -995,8 +1024,6 @@ function buttons:mainUpdateCycleReversed(func)
 
     table.sort(keys, function(a, b) return a > b end)
     for  _, layer_k in pairs(keys) do
-
-
         local Btns_keys = {}
         for btn_k, __ in pairs(self.layers[layer_k ]) do
             table.insert( Btns_keys,btn_k)
@@ -1011,19 +1038,31 @@ function buttons:mainUpdateCycleReversed(func)
         end
     end
 end
+-- Calls function  and gives to it (layer_k,b_key,button_object ) in random order 
+function buttons:mainUpdateCycleUnsorted(func)
+    for layer_k, layer in pairs(self.layers) do
+        --sort buttons inside layer
+        for key, button in pairs(layer) do
+            func(self,layer_k,key,self.layers[layer_k][key] )   
+        end
+    end
+end
+-----------------------
 -- service methods
+-----------------------
 --Creates new id 
 function buttons:idCreate()
-    local count = 0
+    local count = 1
     -- counter from  .max_quantity_buttons_in_layer
     for i = 1,math.huge, 1 do
+ 
         if (self.layers[self.current_layer][i] == nil) then
             return i
         else
             count = count + 1
             if (count > self.max_quantity_buttons_in_layer) then
                 error("max_quantity_buttons_in_layer:" .. count .. " Max exceed:" ..
-                          self.max_quantity_buttons_in_layer)
+                self.max_quantity_buttons_in_layer)
             end
         end
     end
@@ -1039,14 +1078,14 @@ end
 function buttons:GetBtnBase(x,y,id,type,adds)
   local t = adds
    t.IsBorderDown = {
-   [1] = 0,
-   [2] = 0,
-   [3] = 0
+   [1] = false,
+   [2] = false,
+   [3] = false
    }
    t.IsDown = {
-       [1] = 0,
-       [2] = 0,
-       [3] = 0
+       [1] = false,
+       [2] = false,
+       [3] = false
    }
    t.Disabled = false
    t.IsHover = false
@@ -1070,13 +1109,14 @@ function buttons:GetBtnBase(x,y,id,type,adds)
 end
 
 
+
+
 ------------------------
 ---- All function in buttons.methods avalivble for every button 
 -----------------------
 
 buttons.methods = {}
 buttons.methods.buttons = buttons
-
 --delete button 
 function buttons.methods:del()
     if(self.buttons.layers[self.layer][self.id]) then
@@ -1113,13 +1153,18 @@ end
 -- is button has functions that realted to border :bool
 ---@return boolean
 function buttons.methods:hasBorderCallback()
-    if (self.BorderUnHover or  self.WhileBorderHover or  self.BorderHover or self.ClickBorder or self.WhileBorderPressed  or self.ReleaseBorder or self.Scroll ) then return true end
+    if (self.BorderUnHover or  self.WhileBorderHover or  self.BorderHover or self.ClickBorder or self.WhileBorderPressed  or self.ReleaseBorder ) then return true 
+    else
+        return false    
+    end
 end
 -- is button has funcs like hover unhover clicks that related to button body :bool
 ---@return boolean
 function buttons.methods:hasBodyCallback()
-    if (self.UnHover or  self.WhileHover or  self.BorderHover  or  self.Hover or self.Click  or self.WhilePressed or self.Release) then
+    if (self.UnHover or  self.WhileHover or  self.Hover  or  self.Hover or self.Click  or self.WhilePressed or self.Release or self.Scroll) then
         return true
+        else
+            return false
     end-- while pressed 
 end
 
@@ -1331,11 +1376,7 @@ end
 ---------------------
 -- Get some parametr from button
 ---------------------
--- check return button BorderHover state :bool
----@return boolean
-function buttons.methods:isBorderHover()
-    return self.IsBorderHover
-end
+
 --check return button hover state :bool
 ---@return boolean
 function buttons.methods:isHover()
@@ -1354,7 +1395,7 @@ end
 -- get current mouse buttons that pressed on button border :table{1=state,...}
 ---@return boolean
 function buttons.methods:isBorderPressed()
-    return self.BorderIsDown
+    return self.IsBorderDown
 end
 -- Get the type of the object (  1 -rectangle, or 2- circle,3 - polygon)
 ---@return boolean
@@ -1724,8 +1765,8 @@ function buttons.methods:pointInCircleBorder(xm, ym,notScaleTranslate)
 end
 
 
+buttons.methods.math = {}
 
-buttons.methods.math  = {}
 function buttons.methods.math.rotate_point(px, py, cx, cy, angle)
     local radians = math.rad(angle)
     -- Переносим точку относительно центра
@@ -1853,6 +1894,5 @@ end
 
 
 
-
 return buttons
-    
+
